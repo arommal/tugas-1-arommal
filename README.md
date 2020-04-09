@@ -13,7 +13,8 @@ Jangan lupa untuk mengganti nama pada judul halaman HTML yang tersedia dengan NR
 8. Gantilah animasi (GIF) yang ada di halaman README ini dengan animasi (GIF) hasil akhir aplikasi WebGL Anda.
 
 ## Foto Obyek
-![Foto obyek](foto.jpg)
+<!-- ![Foto obyek](foto.jpg) -->
+<img src="foto.jpg" height="462.3" width="575">
 
 ## Animasi (GIF) Aplikasi WebGL
 ![Animasi aplikasi WebGL](joint.gif)
