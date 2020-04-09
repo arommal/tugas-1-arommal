@@ -1,3 +1,6 @@
+let resized = false
+let fullscreen = false
+
 function main() {
 
   // Inisiasi kanvas WebGL
@@ -5,72 +8,64 @@ function main() {
   var rightCanvas = document.getElementById("rightCanvas");
   var leftGL = leftCanvas.getContext("webgl");
   var rightGL = rightCanvas.getContext("webgl");
+  
+  resize();
 
-  // Inisiasi verteks
-  var vertices = [
-    [-0.7,   0.5],      // hor1
-    [-0.8,   0.4],
-    [0.6,    0.4],
-    [0.7,    0.5],
-    [-0.9,   0.3],     // hor2
-    [-1.0,   0.2],
-    [0.4,    0.2],
-    [0.5,    0.3]
-
-    // horver left
-
-    // horver right
-
-    // s 1
-    
-    // s 2
-
-    // s 3
-  ];
+  // Inisiasi verteks persegi
+  
+  var points = initVertices();
 
   var colors = [
     [0.0, 0.0, 1.0],    // biru
-    [0.6, 0.6, 0.6],    // abuabu
-    [0.0, 0.0, 0.0],    // hitam
-  ];  
+    [0.7, 0.7, 0.7],    // abuabu
+    [0.9, 0.9, 0.9],    // putih
+    [0.4, 0.4, 0.4]     // abuabu gelap
+  ];
 
-    // Inisiasi verteks
+  var leftVertices = [];
+  var rightVertices = [];
+
   function quad(a, b, c, d) {
     var indices = [a, b, c, c, d, a];
     for (var i=0; i<indices.length; i++) {
-      for (var j=0; j<3; j++) {
-        if(j == 2){
-          rightVertices.push(cubePoints[indices[i]][j]);
+        leftVertices.push(points[indices[i]][0]);
+        leftVertices.push(points[indices[i]][1]);
+        for (var j=0; j<3; j++) {
+            leftVertices.push(colors[0][j]);
         }
-        
+    }
+  }
+
+  function quadRight(a, b, c, d, color) {
+    var indices = [a, b, c, c, d, a];
+    for (var i=0; i<indices.length; i++) {
+      for(var j=0; j<3; j++){
+        rightVertices.push(points[indices[i]][j]);
       }
       for (var j=0; j<3; j++) {
-        cubeVertices.push(cubeColors[a][j]);
+          rightVertices.push(colors[color][j]);
       }
     }
   }
-  quad(1, 2, 3, 0); // Kubus depan
-  quad(2, 6, 7, 3); // Kubus kanan
-  quad(3, 7, 4, 0); // Kubus atas
-  quad(4, 5, 1, 0); // Kubus kiri
-  quad(5, 4, 7, 6); // Kubus belakang
-  quad(6, 2, 1, 5); // Kubus bawah
 
-  // var blockPoints = [
-  //   [-0.7,  0.1,   0.2],  // A
-  //   [-0.8, -0.1,   0.2],  // B
-  //   [0.6,  -0.1,   0.2],  // C
-  //   [0.7,   0.1,   0.2],  // D
-  //   [-0.7,  0.1,  -0.2],  // E
-  //   [-0.8, -0.1,  -0.2],  // F
-  //   [0.6,  -0.1,  -0.2],  // G
-  //   [0.7,   0.1,  -0.2]   // H
-  // ]
+  function forRight(a, b, c, d, e, f, g, h){
+    quadRight(b, c, d, a, 3);   // belakang
+    quadRight(c, g, h, d, 1);   // kanan
+    quadRight(d, h, e, a, 2);   // atas
+    quadRight(e, f, b, a, 1);   // kiri
+    quadRight(f, e, h, g, 0);   // depan
+    quadRight(g, c, b, f, 3);   // bawah
+  }
 
+  for(var i=0; i<47; i++){
+    quad((i*8)+1, (i*8)+2, (i*8)+3, (i*8));
+    forRight((i*8), (i*8)+1, (i*8)+2, (i*8)+3, (i*8)+4, (i*8)+5, (i*8)+6, (i*8)+7);
+  }
+  
   // Inisiasi VBO (Vertex Buffer Object)
   var leftVertexBuffer = leftGL.createBuffer();
   leftGL.bindBuffer(leftGL.ARRAY_BUFFER, leftVertexBuffer);
-  leftGL.bufferData(leftGL.ARRAY_BUFFER, new Float32Array(left1Vertices), leftGL.STATIC_DRAW);
+  leftGL.bufferData(leftGL.ARRAY_BUFFER, new Float32Array(leftVertices), leftGL.STATIC_DRAW);
   leftGL.bindBuffer(leftGL.ARRAY_BUFFER, null);
   var rightVertexBuffer = rightGL.createBuffer();
   rightGL.bindBuffer(rightGL.ARRAY_BUFFER, rightVertexBuffer);
@@ -80,30 +75,40 @@ function main() {
   // Definisi Shaders
   var leftVertexShaderCode = `
     attribute vec2 aPosition;
+    attribute vec3 aColor;
+    uniform mat2 matW;
+    varying vec3 vColor;
+
     void main(void) {
-      gl_Position = vec4(aPosition, -0.5, 1.0);
+      vColor = aColor;
+      gl_Position = vec4(matW * vec2(aPosition), 0.0, 2.0);
     }
   `
   var leftFragmentShaderCode = `
     precision mediump float;
+    varying vec3 vColor;
+
     void main() {
-      gl_FragColor = vec4(0.3, 0.3, 0.3, 1.0);
+      gl_FragColor = vec4(vColor, 1.0);
     }
   `
+
   var rightVertexShaderCode = `
     attribute vec3 aPosition;
     attribute vec3 aColor;
+    uniform mat4 matW;
+    uniform mat4 matP;
     varying vec3 vColor;
-    uniform mat4 matrix;
 
     void main(void) {
       vColor = aColor;
-      gl_Position = matrix * vec4(aPosition, 1);
+      gl_Position = matW * vec4(aPosition, 1.0);
     }
   `
   var rightFragmentShaderCode = `
     precision mediump float;
     varying vec3 vColor;
+
     void main() {
       gl_FragColor = vec4(vColor, 1.0);
     }
@@ -137,46 +142,102 @@ function main() {
   // Pengikatan VBO dan pengarahan pointer atribut posisi dan warna
   leftGL.bindBuffer(leftGL.ARRAY_BUFFER, leftVertexBuffer);
   var leftPosition = leftGL.getAttribLocation(leftShaderProgram, "aPosition");
-  leftGL.vertexAttribPointer(leftPosition, 2, leftGL.FLOAT, false, 2 * Float32Array.BYTES_PER_ELEMENT, 0);
+  leftGL.vertexAttribPointer(leftPosition, 2, leftGL.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 0);
   leftGL.enableVertexAttribArray(leftPosition);
+  var leftColor = leftGL.getAttribLocation(leftShaderProgram, "aColor");
+  leftGL.vertexAttribPointer(leftColor, 3, leftGL.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 2 * Float32Array.BYTES_PER_ELEMENT);
+  leftGL.enableVertexAttribArray(leftColor);
 
   rightGL.bindBuffer(rightGL.ARRAY_BUFFER, rightVertexBuffer);
   var rightPosition = rightGL.getAttribLocation(rightShaderProgram, "aPosition");
   rightGL.vertexAttribPointer(rightPosition, 3, rightGL.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 0);
   rightGL.enableVertexAttribArray(rightPosition);
-  var color = rightGL.getAttribLocation(rightShaderProgram, "aColor");
-  rightGL.vertexAttribPointer(color, 3, rightGL.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);
-  rightGL.enableVertexAttribArray(color);
-  rightGL.useProgram(rightShaderProgram);
+  var rightColor = rightGL.getAttribLocation(rightShaderProgram, "aColor");
+  rightGL.vertexAttribPointer(rightColor, 3, rightGL.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);
+  rightGL.enableVertexAttribArray(rightColor);
   
-  // Persiapan tampilan layar dan mulai menggambar secara berulang (animasi)
+  var near = 1, far = 50, fov = 60 * Math.PI / 180 /2;
+  var r = near * Math.tan(fov * Math.PI / 180 / 2);
+  var projectionMatrix = [
+      near/r, 0,      0,                      0,
+      0,      near/r, 0,                      0,
+      0,      0,      -(far+near)/(far-near), -1,
+      0,      0,      -2*far*near/(far-near), 0
+  ];
+
+  var matrix3P = rightGL.getUniformLocation(rightShaderProgram,'matP');
+  rightGL.uniformMatrix4fv(matrix3P, false, projectionMatrix);
 
   const uniformLocations = {
-      matrix: rightGL.getUniformLocation(rightShaderProgram, "matrix"),
+    matrix3W: rightGL.getUniformLocation(rightShaderProgram, 'matW'),
+    matrix2: leftGL.getUniformLocation(leftShaderProgram, 'matW'),
   };
 
-  const matrix = mat4.create();
-  mat4.translate(matrix, matrix, [.2, .5, 0]);
-  mat4.scale(matrix, matrix, [0.25, 0.25, 0.25]);
+  const matrix2 = mat2.create();
+  const matrix3W = mat4.create();
+  mat4.scale(matrix3W, matrix3W, [0.5, 0.5, 0.5]);
+  mat4.translate(matrix3W, matrix3W, [0.0, 0.0, -0.5]);
 
+  // Persiapan tampilan layar dan mulai menggambar secara berulang (animasi)
   function render() {
-    // rotateX 0.25, rotateY 0.75, translate 1.5
-    // fov = 60, ncd = 1, fcd = 1
+    if (resized) {
+			leftGL.viewport(0, (leftGL.canvas.height - leftGL.canvas.width)/2, leftGL.canvas.width, leftGL.canvas.width);
+			rightGL.viewport(0, (leftGL.canvas.height - leftGL.canvas.width)/2, rightGL.canvas.width, rightGL.canvas.width);
+			resized = false;
+		}
+
+    mat2.rotate(matrix2, matrix2, -0.25 * Math.PI / 180);
+    leftGL.uniformMatrix2fv(uniformLocations.matrix2, false, matrix2);
     leftGL.clear(leftGL.COLOR_BUFFER_BIT);
-    leftGL.drawArrays(leftGL.TRIANGLE_FAN, 0, left1Vertices.length);
-    mat4.rotateZ(matrix, matrix, Math.PI/2 /70);
-    mat4.rotateX(matrix, matrix, Math.PI/2 /70);
-    rightGL.uniformMatrix4fv(uniformLocations.matrix, false, matrix);
+    leftGL.drawArrays(leftGL.TRIANGLES, 0, leftVertices.length);
+
+
+    mat4.rotateX(matrix3W, matrix3W, -0.25 * Math.PI / 180);
+    mat4.rotateY(matrix3W, matrix3W, 0.75 * Math.PI / 180);
+    rightGL.uniformMatrix4fv(uniformLocations.matrix3W, false, matrix3W);
     rightGL.clear(rightGL.COLOR_BUFFER_BIT | rightGL.DEPTH_BUFFER_BIT);
-    rightGL.drawArrays(rightGL.TRIANGLES, 0, 3);
+    rightGL.drawArrays(rightGL.TRIANGLES, 0, rightVertices.length);
+
     requestAnimationFrame(render);
   }
 
   leftGL.clearColor(0.7, 0.7, 0.7, 1.0);
   leftGL.viewport(0, (leftGL.canvas.height - leftGL.canvas.width)/2, leftGL.canvas.width, leftGL.canvas.width);
-  
+
   rightGL.clearColor(0.0, 0.0, 0.0, 1.0);
   rightGL.enable(rightGL.DEPTH_TEST);
   rightGL.viewport(0, (leftGL.canvas.height - leftGL.canvas.width)/2, rightGL.canvas.width, rightGL.canvas.width);
+
   render();
+}
+
+function checkFullscreen(){
+  if(!fullScreen){
+      if(document.body.requestFullscreen)
+          document.body.requestFullscreen();
+      else if(document.body.webkitRequestFullscreen)
+          document.body.webkitRequestFullscreen();
+      else if(document.body.mozRequestFullScreen)
+          document.body.mozRequestFullScreen();
+      else if(document.body.msRequestFullscreen)
+          document.body.msRequestFullscreen();
+  }else{
+      if (document.exitFullscreen) 
+		      document.exitFullscreen();
+      else if (document.mozCancelFullScreen)
+		      document.mozCancelFullScreen();
+      else if (document.webkitExitFullscreen) 
+		      document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) 
+		      document.msExitFullscreen();
+  }
+  fullscreen = !fullscreen;
+}
+
+function resize() {
+	var leftCanvas = document.getElementById("leftCanvas");
+	var rightCanvas = document.getElementById("rightCanvas");
+	leftCanvas.width = rightCanvas.width = window.innerWidth/ 2 - 3;
+	leftCanvas.height = rightCanvas.height = window.innerHeight;
+	resized = true;
 }
