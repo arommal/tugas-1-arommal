@@ -155,21 +155,10 @@ function main() {
   var rightColor = rightGL.getAttribLocation(rightShaderProgram, "aColor");
   rightGL.vertexAttribPointer(rightColor, 3, rightGL.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);
   rightGL.enableVertexAttribArray(rightColor);
-  
-  var near = 1, far = 50, fov = 60 * Math.PI / 180 /2;
-  var r = near * Math.tan(fov * Math.PI / 180 / 2);
-  var projectionMatrix = [
-      near/r, 0,      0,                      0,
-      0,      near/r, 0,                      0,
-      0,      0,      -(far+near)/(far-near), -1,
-      0,      0,      -2*far*near/(far-near), 0
-  ];
-
-  var matrix3P = rightGL.getUniformLocation(rightShaderProgram,'matP');
-  rightGL.uniformMatrix4fv(matrix3P, false, projectionMatrix);
 
   const uniformLocations = {
     matrix3W: rightGL.getUniformLocation(rightShaderProgram, 'matW'),
+    matrix3P: rightGL.getUniformLocation(rightShaderProgram,'matP'),
     matrix2: leftGL.getUniformLocation(leftShaderProgram, 'matW'),
   };
 
@@ -177,6 +166,15 @@ function main() {
   const matrix3W = mat4.create();
   mat4.scale(matrix3W, matrix3W, [0.5, 0.5, 0.5]);
   mat4.translate(matrix3W, matrix3W, [0.0, 0.0, -0.5]);
+
+  var ncd = 1, fcd = 50, fov = 60 * Math.PI / 180 /2;
+  var r = ncd * Math.tan(fov);
+  var matrix3P = [
+      ncd/r, 0,      0,                      0,
+      0,      ncd/r, 0,                      0,
+      0,      0,      -(fcd+ncd)/(fcd-ncd), -1,
+      0,      0,      -2*fcd*ncd/(fcd-ncd), 0
+  ];
 
   // Persiapan tampilan layar dan mulai menggambar secara berulang (animasi)
   function render() {
@@ -186,15 +184,15 @@ function main() {
 			resized = false;
 		}
 
-    mat2.rotate(matrix2, matrix2, -0.25 * Math.PI / 180);
+    mat2.rotate(matrix2, matrix2, -0.5 * Math.PI / 180);
     leftGL.uniformMatrix2fv(uniformLocations.matrix2, false, matrix2);
     leftGL.clear(leftGL.COLOR_BUFFER_BIT);
     leftGL.drawArrays(leftGL.TRIANGLES, 0, leftVertices.length);
 
-
     mat4.rotateX(matrix3W, matrix3W, -0.25 * Math.PI / 180);
     mat4.rotateY(matrix3W, matrix3W, 0.75 * Math.PI / 180);
     rightGL.uniformMatrix4fv(uniformLocations.matrix3W, false, matrix3W);
+    rightGL.uniformMatrix4fv(uniformLocations.matrix3P, false, matrix3P);
     rightGL.clear(rightGL.COLOR_BUFFER_BIT | rightGL.DEPTH_BUFFER_BIT);
     rightGL.drawArrays(rightGL.TRIANGLES, 0, rightVertices.length);
 
